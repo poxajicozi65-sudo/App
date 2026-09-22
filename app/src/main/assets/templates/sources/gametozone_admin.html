@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{APP_NAME}} - GameToZone Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-indigo-400">{{APP_NAME}} Game Admin</h1>
+                <p class="text-xs text-slate-400">{{ADMIN_EMAIL}}</p>
+            </div>
+            <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">Admin Active</span>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                <h2 class="text-lg font-bold text-yellow-400 mb-4">Game & Ad Settings</h2>
+                <div class="space-y-4 text-sm">
+                    <div>
+                        <label class="text-xs text-slate-400 font-bold block mb-1">Watch & Earn Reward (Coins)</label>
+                        <input type="number" value="{{AD_REWARD}}" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 font-bold block mb-1">Ad Cooldown Delay (Seconds)</label>
+                        <input type="number" value="15" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 font-bold block mb-1">Game Play Duration (Seconds)</label>
+                        <input type="number" value="30" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 font-bold block mb-1">Referral Bonus (Coins)</label>
+                        <input type="number" value="{{REFERRAL_BONUS}}" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    </div>
+                    <button onclick="alert('Settings Saved!')" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold">Save Settings</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                <h2 class="text-lg font-bold text-green-400 mb-4">Add New HTML5 Game</h2>
+                <div class="space-y-4 text-sm">
+                    <input type="text" placeholder="Game Title (e.g. Flappy Bird)" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    <input type="text" placeholder="Game Image URL" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    <input type="text" placeholder="IFrame Game URL (HTTPS)" class="w-full bg-slate-900 p-2.5 rounded-lg border border-slate-600 outline-none text-white">
+                    <button onclick="alert('Game Added to Catalog!')" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold">Publish Game</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

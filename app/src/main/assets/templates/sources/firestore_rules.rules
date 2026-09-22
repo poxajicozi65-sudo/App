@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAdmin(adminEmail) {
+      return request.auth != null && (request.auth.token.email == adminEmail || request.auth.token.email == "{{ADMIN_EMAIL}}");
+    }
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin("{{ADMIN_EMAIL}}"));
+    }
+
+    match /artifacts/{appId}/users/{userId}/profile/main {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin("{{ADMIN_EMAIL}}"));
+    }
+    
+    // 2. Earnings History
+    match /artifacts/{appId}/users/{userId}/earnings/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 3. Withdrawals
+    match /withdrawals/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && isAdmin("{{ADMIN_EMAIL}}");
+    }
+
+    match /artifacts/{appId}/public/data/withdrawals/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+    }
+
+    // 4. Global Settings & Games
+    match /config/main {
+      allow read: if true;
+      allow write: if isAdmin("{{ADMIN_EMAIL}}");
+    }
+
+    match /artifacts/{appId}/public/data/settings/global {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /artifacts/{appId}/public/data/games/{gameId} {
+      allow read: if true;
+      allow write: if isAdmin("{{ADMIN_EMAIL}}");
+    }
+
+    // 5. Referral Codes
+    match /artifacts/{appId}/public/data/referralCodes/{code} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    match /ludo_matchmaking/{roomId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

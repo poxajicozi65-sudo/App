@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{APP_NAME}} - Play & Earn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
+    <!-- REAL ADS SCRIPT -->
+    <script src="{{AD_SDK_URL}}"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #fff; user-select: none; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 5px; }
+        .pulse-gold-btn { animation: pulse-gold 2s infinite; }
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); } 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); } }
+        .disabled-card { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+    </style>
+</head>
+<body class="h-screen flex flex-col relative">
+
+    <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"></div>
+
+    <!-- Main App -->
+    <div id="main-app" class="flex-1 flex flex-col overflow-hidden pb-16">
+        <header class="flex justify-between items-center p-4 bg-slate-800/80 backdrop-blur sticky top-0 z-20 border-b border-slate-700">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center mr-2 shadow-lg">
+                    <i class="fas fa-coins text-white text-xs"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 uppercase">Balance</p>
+                    <p class="font-bold text-white leading-none" id="header-balance">{{SIGNUP_BONUS}}</p>
+                </div>
+            </div>
+            <div class="font-bold text-indigo-400">{{APP_NAME}}</div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 relative">
+            <div id="home-page" class="page-section">
+                <!-- Watch & Earn Card with Cooldown -->
+                <div id="watch-earn-card" onclick="triggerWatchEarn()" class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 mb-6 relative overflow-hidden shadow-lg active:scale-95 transition cursor-pointer">
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-bold text-white mb-1"><i class="fas fa-play-circle mr-2"></i>Watch & Earn</h2>
+                        <p class="text-blue-100 text-sm">Watch ads to claim instant reward coins!</p>
+                        <div class="mt-4 inline-block bg-white/20 px-4 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
+                            GET {{AD_REWARD}} COINS
+                        </div>
+                        <p id="ad-timer-msg" class="text-xs text-yellow-300 mt-2 hidden">Next ad in: <span id="ad-cooldown-timer">0</span>s</p>
+                    </div>
+                    <i class="fas fa-video absolute -bottom-4 -right-4 text-8xl text-white opacity-10"></i>
+                </div>
+
+                <!-- Play Games -->
+                <div onclick="initiateGamePlay('https://play.gamepix.com/flappy-bird/embed')" class="bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl p-6 mb-6 relative overflow-hidden shadow-lg active:scale-95 transition cursor-pointer">
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-bold text-white mb-1"><i class="fas fa-gamepad mr-2"></i>Play Web Games</h2>
+                        <p class="text-orange-100 text-sm">Play 30s to unlock Claim Reward bonus.</p>
+                        <div class="mt-4 inline-block bg-white/20 px-4 py-1 rounded-full text-xs font-bold backdrop-blur-sm">PLAY NOW</div>
+                    </div>
+                    <i class="fas fa-ghost absolute -bottom-4 -right-4 text-8xl text-white opacity-10"></i>
+                </div>
+
+                <!-- Refer & Earn banner -->
+                <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-bold">Invite Code</span>
+                        <span class="text-xs bg-indigo-600 px-3 py-1 rounded-full font-bold text-white cursor-pointer" onclick="copyRef()">COPY</span>
+                    </div>
+                    <p class="font-mono text-xl font-bold text-yellow-400" id="ref-code">ZONE779</p>
+                    <p class="text-xs text-slate-400 mt-2">Earn +{{REFERRAL_BONUS}} Coins for every friend invited.</p>
+                </div>
+            </div>
+
+            <!-- Wallet -->
+            <div id="wallet-page" class="page-section hidden">
+                <div class="bg-slate-800 rounded-2xl p-6 mb-6 text-center border border-slate-700">
+                    <p class="text-slate-400 text-sm mb-1">Current Balance</p>
+                    <h1 class="text-4xl font-bold text-yellow-400 mb-2" id="wallet-balance">{{SIGNUP_BONUS}}</h1>
+                    <p class="text-xs text-green-400 font-bold bg-green-400/10 inline-block px-3 py-1 rounded-full">Rate: {{COIN_RATE_COINS}} Coins = {{CURRENCY_SYMBOL}}{{COIN_RATE_CURRENCY}}</p>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-4">
+                    <h3 class="font-bold mb-4 text-indigo-400">Request Withdrawal</h3>
+                    <input type="text" id="withdraw-details" placeholder="Enter UPI / Wallet ID" class="w-full bg-slate-700 border-none rounded-lg p-3 text-white mb-3">
+                    <input type="number" id="withdraw-amount" placeholder="Amount (Min {{MIN_WITHDRAWAL}} Coins)" class="w-full bg-slate-700 border-none rounded-lg p-3 text-white mb-3">
+                    <button onclick="handleWithdraw()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg">Submit Request</button>
+                </div>
+            </div>
+        </main>
+
+        <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex justify-around p-2 pb-4 z-30">
+            <button onclick="showPage('home-page')" class="flex flex-col items-center text-indigo-400 text-xs font-bold">
+                <i class="fas fa-home text-lg mb-1"></i> Home
+            </button>
+            <button onclick="showPage('wallet-page')" class="flex flex-col items-center text-slate-400 text-xs font-bold">
+                <i class="fas fa-wallet text-lg mb-1"></i> Wallet
+            </button>
+        </nav>
+    </div>
+
+    <!-- Play Overlay -->
+    <div id="play-overlay" class="hidden fixed inset-0 z-50 bg-slate-900 flex flex-col">
+        <div class="flex justify-between items-center p-3 bg-slate-800 z-10 shadow-lg">
+            <button onclick="exitGame()" class="text-white bg-red-600 px-3 py-1 rounded text-xs font-bold">EXIT</button>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-clock text-slate-400 text-xs"></i>
+                <div class="bg-black px-3 py-1 rounded text-yellow-400 font-mono font-bold" id="game-timer">00:30</div>
+            </div>
+        </div>
+        <div id="top-claim-container" class="hidden absolute top-16 left-0 right-0 z-20 flex justify-center px-4">
+            <button onclick="triggerClaimReward()" class="bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg border-2 border-yellow-300 pulse-gold-btn flex items-center gap-2">
+                <i class="fas fa-gift"></i> CLAIM +50 COINS
+            </button>
+        </div>
+        <div class="flex-1 bg-black relative w-full h-full">
+            <iframe id="game-iframe" src="" class="w-full h-full border-none"></iframe>
+        </div>
+    </div>
+
+    <script>
+        let balance = {{SIGNUP_BONUS}};
+        let lastAdWatchTime = 0;
+        const cooldown = 15;
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-indigo-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg mb-2';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        function triggerWatchEarn() {
+            const now = Date.now();
+            const elapsed = (now - lastAdWatchTime) / 1000;
+            if(elapsed < cooldown) {
+                const left = Math.ceil(cooldown - elapsed);
+                showToast(`Please wait ${left}s before next ad`);
+                return;
+            }
+            lastAdWatchTime = now;
+            balance += {{AD_REWARD}};
+            document.getElementById('header-balance').innerText = balance;
+            document.getElementById('wallet-balance').innerText = balance;
+            showToast(`+{{AD_REWARD}} Coins Added!`);
+            startCooldown(cooldown);
+        }
+
+        function startCooldown(sec) {
+            const card = document.getElementById('watch-earn-card');
+            const msg = document.getElementById('ad-timer-msg');
+            const disp = document.getElementById('ad-cooldown-timer');
+            card.classList.add('disabled-card');
+            msg.classList.remove('hidden');
+            let left = sec;
+            disp.innerText = left;
+            const intv = setInterval(() => {
+                left--;
+                disp.innerText = left;
+                if(left <= 0) {
+                    clearInterval(intv);
+                    card.classList.remove('disabled-card');
+                    msg.classList.add('hidden');
+                }
+            }, 1000);
+        }
+
+        function initiateGamePlay(url) {
+            document.getElementById('game-iframe').src = url;
+            document.getElementById('play-overlay').classList.remove('hidden');
+            document.getElementById('top-claim-container').classList.add('hidden');
+            let seconds = 30;
+            const timer = setInterval(() => {
+                seconds--;
+                document.getElementById('game-timer').innerText = `00:${seconds < 10 ? '0' : ''}${seconds}`;
+                if(seconds <= 0) {
+                    clearInterval(timer);
+                    document.getElementById('top-claim-container').classList.remove('hidden');
+                }
+            }, 1000);
+        }
+
+        function triggerClaimReward() {
+            document.getElementById('top-claim-container').classList.add('hidden');
+            balance += 50;
+            document.getElementById('header-balance').innerText = balance;
+            document.getElementById('wallet-balance').innerText = balance;
+            showToast("+50 Game Play Reward Claimed!");
+            exitGame();
+        }
+
+        function exitGame() {
+            document.getElementById('play-overlay').classList.add('hidden');
+            document.getElementById('game-iframe').src = '';
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        function copyRef() {
+            navigator.clipboard.writeText(document.getElementById('ref-code').innerText);
+            showToast("Referral Code Copied!");
+        }
+
+        function handleWithdraw() {
+            const amt = parseInt(document.getElementById('withdraw-amount').value);
+            if(!amt || amt < {{MIN_WITHDRAWAL}}) return showToast("Min withdraw is {{MIN_WITHDRAWAL}} Coins");
+            if(amt > balance) return showToast("Insufficient balance");
+            balance -= amt;
+            document.getElementById('header-balance').innerText = balance;
+            document.getElementById('wallet-balance').innerText = balance;
+            showToast("Withdrawal submitted successfully!");
+            document.getElementById('withdraw-amount').value = '';
+            document.getElementById('withdraw-details').value = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{APP_NAME}} — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --accent: {{ACCENT_COLOR}};
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <!-- Auth Container -->
+  <div id="authView" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-lg" style="background-color: var(--accent);">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold">{{APP_NAME}} Admin</h1>
+        <p class="text-slate-400 text-sm mt-1">Authorized access for <span class="text-sky-400 font-mono">{{ADMIN_EMAIL}}</span></p>
+      </div>
+
+      <div id="loginError" class="hidden mb-4 p-3 bg-red-900/50 border border-red-500/50 rounded-xl text-red-200 text-sm"></div>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Admin Email</label>
+          <input type="email" id="emailInput" value="{{ADMIN_EMAIL}}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-sky-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Password</label>
+          <input type="password" id="passwordInput" placeholder="••••••••" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-sky-500">
+        </div>
+        <button type="submit" id="btnLogin" class="w-full text-white font-semibold py-3 rounded-xl shadow-lg transition duration-200 hover:opacity-90" style="background-color: var(--accent);">
+          Sign In to Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard Container -->
+  <div id="dashboardView" class="hidden min-h-screen flex flex-col">
+    <!-- Top Nav -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow" style="background-color: var(--accent);">
+          {{APP_NAME_INITIAL}}
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white leading-tight">{{APP_NAME}} Admin</h2>
+          <p class="text-xs text-slate-400">Watch &amp; Earn Operations</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span id="adminBadge" class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-mono">
+          {{ADMIN_EMAIL}}
+        </span>
+        <button id="btnLogout" class="text-sm bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl text-slate-200 transition">
+          Sign Out
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+      <!-- Metric Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow">
+          <p class="text-xs uppercase font-medium text-slate-400">Total Users</p>
+          <h3 id="statTotalUsers" class="text-3xl font-bold mt-1 text-white">0</h3>
+          <p class="text-xs text-slate-500 mt-1">Registered Telegram accounts</p>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow">
+          <p class="text-xs uppercase font-medium text-slate-400">Coins in Circulation</p>
+          <h3 id="statTotalCoins" class="text-3xl font-bold mt-1 text-amber-400">0</h3>
+          <p class="text-xs text-slate-500 mt-1">Est. liability: <span id="statLiability" class="text-slate-300 font-semibold">{{CURRENCY_SYMBOL}}0</span></p>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow">
+          <p class="text-xs uppercase font-medium text-slate-400">Pending Withdrawals</p>
+          <h3 id="statPendingWithdrawals" class="text-3xl font-bold mt-1 text-sky-400">0</h3>
+          <p class="text-xs text-slate-500 mt-1">Awaiting review &amp; payout</p>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow">
+          <p class="text-xs uppercase font-medium text-slate-400">Completed Payouts</p>
+          <h3 id="statCompletedPayouts" class="text-3xl font-bold mt-1 text-emerald-400">0</h3>
+          <p class="text-xs text-slate-500 mt-1">Successfully fulfilled</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex space-x-2 border-b border-slate-700 pb-3">
+        <button onclick="switchTab('withdrawals')" id="tabBtnWithdrawals" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold bg-sky-600 text-white">Withdrawal Requests</button>
+        <button onclick="switchTab('users')" id="tabBtnUsers" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-white">User Management</button>
+        <button onclick="switchTab('settings')" id="tabBtnSettings" class="tab-btn px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-white">Economy Rules</button>
+      </div>
+
+      <!-- Tab: Withdrawals -->
+      <div id="tabWithdrawals" class="tab-content space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold">Recent Payout Requests</h3>
+          <button onclick="loadWithdrawals()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300 flex items-center space-x-1">
+            <span>Refresh</span>
+          </button>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <tr>
+                  <th class="p-4">User</th>
+                  <th class="p-4">Payment Method</th>
+                  <th class="p-4">Account / UPI</th>
+                  <th class="p-4">Amount</th>
+                  <th class="p-4">Date</th>
+                  <th class="p-4">Status</th>
+                  <th class="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="withdrawalsTableBody" class="divide-y divide-slate-700/60">
+                <tr>
+                  <td colspan="7" class="p-8 text-center text-slate-500">No withdrawal requests found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Users -->
+      <div id="tabUsers" class="tab-content hidden space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold">Registered Users</h3>
+          <div class="flex space-x-2">
+            <input type="text" id="userSearchInput" placeholder="Filter by User ID or Name..." onkeyup="filterUsers()" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-1.5 text-sm text-white focus:outline-none">
+            <button onclick="loadUsers()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Refresh</button>
+          </div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <tr>
+                  <th class="p-4">Telegram User</th>
+                  <th class="p-4">Coins Balance</th>
+                  <th class="p-4">Referrals</th>
+                  <th class="p-4">Ads Watched</th>
+                  <th class="p-4">Joined Date</th>
+                  <th class="p-4 text-right">Adjust Coins</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody" class="divide-y divide-slate-700/60">
+                <tr>
+                  <td colspan="6" class="p-8 text-center text-slate-500">No users registered yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Settings / Economy -->
+      <div id="tabSettings" class="tab-content hidden space-y-6">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow max-w-2xl">
+          <h3 class="text-xl font-bold mb-4">Configured Economy Constants</h3>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="p-3 bg-slate-900/60 rounded-xl">
+              <span class="text-xs text-slate-400">Signup Bonus</span>
+              <p class="font-bold text-white text-lg">{{SIGNUP_BONUS}} coins</p>
+            </div>
+            <div class="p-3 bg-slate-900/60 rounded-xl">
+              <span class="text-xs text-slate-400">Ad Watch Reward</span>
+              <p class="font-bold text-amber-400 text-lg">{{AD_REWARD}} coins</p>
+            </div>
+            <div class="p-3 bg-slate-900/60 rounded-xl">
+              <span class="text-xs text-slate-400">Referral Reward</span>
+              <p class="font-bold text-emerald-400 text-lg">{{REFERRAL_BONUS}} coins</p>
+            </div>
+            <div class="p-3 bg-slate-900/60 rounded-xl">
+              <span class="text-xs text-slate-400">Minimum Withdrawal</span>
+              <p class="font-bold text-sky-400 text-lg">{{MIN_WITHDRAWAL}} coins</p>
+            </div>
+            <div class="p-3 bg-slate-900/60 rounded-xl col-span-2">
+              <span class="text-xs text-slate-400">Exchange Rate</span>
+              <p class="font-bold text-white text-lg">{{COIN_RATE_COINS}} coins = {{CURRENCY_SYMBOL}}{{COIN_RATE_CURRENCY}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const firebaseConfig = {{FIREBASE_CONFIG_JSON}};
+    const EXPECTED_ADMIN = "{{ADMIN_EMAIL}}".toLowerCase().trim();
+    const COIN_RATE_COINS = {{COIN_RATE_COINS}};
+    const COIN_RATE_CURRENCY = {{COIN_RATE_CURRENCY}};
+    const CURRENCY_SYMBOL = "{{CURRENCY_SYMBOL}}";
+
+    let db, auth;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+    } catch (e) {
+      console.error("Firebase init error", e);
+    }
+
+    // Auth state listener
+    auth && auth.onAuthStateChanged(user => {
+      if (user && user.email && user.email.toLowerCase().trim() === EXPECTED_ADMIN) {
+        document.getElementById('authView').classList.add('hidden');
+        document.getElementById('dashboardView').classList.remove('hidden');
+        document.getElementById('adminBadge').innerText = user.email;
+        loadDashboardStats();
+        loadWithdrawals();
+        loadUsers();
+      } else {
+        document.getElementById('authView').classList.remove('hidden');
+        document.getElementById('dashboardView').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      const pass = document.getElementById('passwordInput').value;
+      const errBox = document.getElementById('loginError');
+      errBox.classList.add('hidden');
+
+      if (email.toLowerCase() !== EXPECTED_ADMIN) {
+        errBox.innerText = `Only configured admin (${EXPECTED_ADMIN}) can log into this panel.`;
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        await auth.signInWithEmailAndPassword(email, pass);
+      } catch (err) {
+        // If user doesn't exist yet, try creating initial admin account
+        if (err.code === 'auth/user-not-found') {
+          try {
+            await auth.createUserWithEmailAndPassword(email, pass);
+            return;
+          } catch (createErr) {
+            errBox.innerText = createErr.message;
+            errBox.classList.remove('hidden');
+          }
+        } else {
+          errBox.innerText = err.message;
+          errBox.classList.remove('hidden');
+        }
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      auth && auth.signOut();
+    });
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-sky-600', 'text-white');
+        btn.classList.add('text-slate-400');
+      });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+      if (tab === 'withdrawals') {
+        document.getElementById('tabBtnWithdrawals').classList.add('bg-sky-600', 'text-white');
+        document.getElementById('tabWithdrawals').classList.remove('hidden');
+      } else if (tab === 'users') {
+        document.getElementById('tabBtnUsers').classList.add('bg-sky-600', 'text-white');
+        document.getElementById('tabUsers').classList.remove('hidden');
+      } else if (tab === 'settings') {
+        document.getElementById('tabBtnSettings').classList.add('bg-sky-600', 'text-white');
+        document.getElementById('tabSettings').classList.remove('hidden');
+      }
+    }
+
+    let allUsers = [];
+
+    async function loadDashboardStats() {
+      if (!db) return;
+      try {
+        const usersSnap = await db.collection('users').get();
+        let totalCoins = 0;
+        usersSnap.forEach(doc => {
+          totalCoins += (doc.data().coins || 0);
+        });
+        document.getElementById('statTotalUsers').innerText = usersSnap.size;
+        document.getElementById('statTotalCoins').innerText = totalCoins.toLocaleString();
+        const estValue = ((totalCoins / COIN_RATE_COINS) * COIN_RATE_CURRENCY).toFixed(2);
+        document.getElementById('statLiability').innerText = `${CURRENCY_SYMBOL}${estValue}`;
+
+        const pendingSnap = await db.collection('withdrawals').where('status', '==', 'pending').get();
+        document.getElementById('statPendingWithdrawals').innerText = pendingSnap.size;
+
+        const completedSnap = await db.collection('withdrawals').where('status', '==', 'approved').get();
+        document.getElementById('statCompletedPayouts').innerText = completedSnap.size;
+      } catch (e) {
+        console.error("Error loading stats:", e);
+      }
+    }
+
+    async function loadWithdrawals() {
+      if (!db) return;
+      const tbody = document.getElementById('withdrawalsTableBody');
+      try {
+        const snap = await db.collection('withdrawals').orderBy('createdAt', 'desc').limit(50).get();
+        if (snap.empty) {
+          tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No withdrawal requests found.</td></tr>`;
+          return;
+        }
+        let html = '';
+        snap.forEach(doc => {
+          const item = doc.data();
+          const id = doc.id;
+          const statusClass = item.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                              item.status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                              'bg-amber-500/20 text-amber-400 border-amber-500/30';
+          const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A';
+          html += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-4 font-mono text-xs text-sky-400">${item.userId || 'User'}</td>
+              <td class="p-4 font-semibold text-white">${item.method || 'UPI'}</td>
+              <td class="p-4 font-mono text-xs text-slate-300">${item.account || '-'}</td>
+              <td class="p-4">
+                <span class="font-bold text-amber-400">${item.coins || 0} coins</span>
+                <span class="text-xs text-slate-400 block">(${CURRENCY_SYMBOL}${item.amountInCurrency || 0})</span>
+              </td>
+              <td class="p-4 text-xs text-slate-400">${dateStr}</td>
+              <td class="p-4">
+                <span class="text-xs px-2.5 py-1 rounded-full border ${statusClass} uppercase font-semibold">${item.status}</span>
+              </td>
+              <td class="p-4 text-right space-x-2">
+                ${item.status === 'pending' ? `
+                  <button onclick="updateWithdrawal('${id}', 'approved')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold">Approve</button>
+                  <button onclick="updateWithdrawal('${id}', 'rejected')" class="text-xs bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg font-semibold">Reject</button>
+                ` : `<span class="text-xs text-slate-500">Processed</span>`}
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      } catch (e) {
+        console.error("Error loading withdrawals:", e);
+      }
+    }
+
+    async function updateWithdrawal(id, status) {
+      if (!confirm(`Are you sure you want to mark this request as ${status}?`)) return;
+      try {
+        await db.collection('withdrawals').doc(id).update({
+          status: status,
+          reviewedAt: Date.now()
+        });
+        loadWithdrawals();
+        loadDashboardStats();
+      } catch (e) {
+        alert("Failed to update status: " + e.message);
+      }
+    }
+
+    async function loadUsers() {
+      if (!db) return;
+      const tbody = document.getElementById('usersTableBody');
+      try {
+        const snap = await db.collection('users').limit(100).get();
+        allUsers = [];
+        snap.forEach(doc => {
+          allUsers.push({ id: doc.id, ...doc.data() });
+        });
+        renderUsers(allUsers);
+      } catch (e) {
+        console.error("Error loading users:", e);
+      }
+    }
+
+    function renderUsers(usersList) {
+      const tbody = document.getElementById('usersTableBody');
+      if (usersList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">No users found.</td></tr>`;
+        return;
+      }
+      let html = '';
+      usersList.forEach(u => {
+        html += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="p-4">
+              <div class="font-bold text-white">${u.displayName || u.username || 'Telegram User'}</div>
+              <div class="text-xs font-mono text-slate-400">${u.id}</div>
+            </td>
+            <td class="p-4 font-bold text-amber-400">${(u.coins || 0).toLocaleString()}</td>
+            <td class="p-4 text-slate-300">${u.referralsCount || 0}</td>
+            <td class="p-4 text-slate-300">${u.adsWatched || 0}</td>
+            <td class="p-4 text-xs text-slate-400">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>
+            <td class="p-4 text-right">
+              <button onclick="adjustCoins('${u.id}', 100)" class="text-xs bg-slate-700 hover:bg-slate-600 text-sky-400 px-2 py-1 rounded mr-1 font-semibold">+100</button>
+              <button onclick="adjustCoins('${u.id}', -100)" class="text-xs bg-slate-700 hover:bg-slate-600 text-red-400 px-2 py-1 rounded font-semibold">-100</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('userSearchInput').value.toLowerCase();
+      const filtered = allUsers.filter(u => 
+        (u.id && u.id.toLowerCase().includes(q)) || 
+        (u.displayName && u.displayName.toLowerCase().includes(q)) ||
+        (u.username && u.username.toLowerCase().includes(q))
+      );
+      renderUsers(filtered);
+    }
+
+    async function adjustCoins(userId, amount) {
+      try {
+        const ref = db.collection('users').doc(userId);
+        await db.runTransaction(async t => {
+          const doc = await t.get(ref);
+          const current = (doc.data().coins || 0);
+          const next = Math.max(0, current + amount);
+          t.update(ref, { coins: next });
+        });
+        loadUsers();
+        loadDashboardStats();
+      } catch (e) {
+        alert("Coin adjustment error: " + e.message);
+      }
+    }
+  </script>
+</body>
+</html>

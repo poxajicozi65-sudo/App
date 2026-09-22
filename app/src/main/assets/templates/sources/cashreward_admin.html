@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{APP_NAME}} - CashReward Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 p-6 text-gray-800">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-8 border-b pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-yellow-600">{{APP_NAME}} Admin Panel</h1>
+                <p class="text-xs text-gray-500">{{ADMIN_EMAIL}}</p>
+            </div>
+            <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">Admin Verified</span>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold mb-4">Reward Settings</h2>
+                <div class="space-y-4 text-sm">
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold block mb-1">Ad Watch Reward</label>
+                        <input type="number" value="{{AD_REWARD}}" class="w-full p-2.5 rounded-lg border outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold block mb-1">Special 60s Click Task Reward</label>
+                        <input type="number" value="100" class="w-full p-2.5 rounded-lg border outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold block mb-1">Color Game Reward</label>
+                        <input type="number" value="10" class="w-full p-2.5 rounded-lg border outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold block mb-1">Min Withdrawal Coins</label>
+                        <input type="number" value="{{MIN_WITHDRAWAL}}" class="w-full p-2.5 rounded-lg border outline-none">
+                    </div>
+                    <button onclick="alert('Settings Saved!')" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-3 rounded-xl font-bold">Save Settings</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold mb-4">Payout Approvals</h2>
+                <div class="space-y-3 text-sm text-gray-500">
+                    <p class="text-center py-8">All withdrawal requests are up to date.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "MiniApp Forge",
+  "description": "On-device Telegram Mini App & Bot Builder featuring an Asset & Icon Store, Google Drive-to-Direct-Image Link Converter, Gemini AI Chat Architect, visual Canvas flow editor, and live simulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

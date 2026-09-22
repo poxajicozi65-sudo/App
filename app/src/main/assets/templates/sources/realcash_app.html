@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{APP_NAME}} - Ludo & Games</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React 18 & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Ad SDK -->
+    <script src='{{AD_SDK_URL}}' data-zone='{{AD_ZONE_ID}}' data-sdk='show_{{AD_ZONE_ID}}'></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        @keyframes popUp { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-pop-up { animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body class="bg-gray-900">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect, useRef } = React;
+
+        const defaultSettings = {
+            appName: "{{APP_NAME}}",
+            currencySymbol: "{{CURRENCY_SYMBOL}}",
+            coinRate: "{{COIN_RATE_CURRENCY}}",
+            adReward: {{AD_REWARD}},
+            referReward: {{REFERRAL_BONUS}},
+            signupBonus: {{SIGNUP_BONUS}},
+            spinCost: 10,
+            scratchMin: 5,
+            scratchMax: 20
+        };
+
+        // Ludo Coordinates
+        const generatePath = () => {
+            const p = [];
+            for(let y=13; y>=9; y--) p.push({x:6, y});     
+            for(let x=5; x>=0; x--) p.push({x, y:8});      
+            p.push({x:0, y:7});                            
+            for(let x=0; x<=5; x++) p.push({x, y:6});      
+            for(let y=5; y>=0; y--) p.push({x:6, y});      
+            p.push({x:7, y:0});                            
+            for(let y=0; y<=5; y++) p.push({x:8, y});      
+            for(let x=9; x<=14; x++) p.push({x, y:6});     
+            p.push({x:14, y:7});                           
+            for(let x=14; x>=9; x--) p.push({x, y:8});     
+            for(let y=9; y<=13; y++) p.push({x:8, y});     
+            p.push({x:7, y:14});                           
+            return p;
+        };
+
+        const ludoPath = generatePath();
+        const safeZones = [0, 8, 13, 21, 26, 34, 39, 47];
+        const redHomeStretch = [ {x:7, y:13}, {x:7, y:12}, {x:7, y:11}, {x:7, y:10}, {x:7, y:9} ];
+        const yellowHomeStretch = [ {x:7, y:1}, {x:7, y:2}, {x:7, y:3}, {x:7, y:4}, {x:7, y:5} ];
+
+        function RealCashApp() {
+            const [activeTab, setActiveTab] = useState('games');
+            const [currentScreen, setCurrentScreen] = useState('main');
+            const [coins, setCoins] = useState(defaultSettings.signupBonus);
+            const [inrBalance, setInrBalance] = useState(0);
+            const [notification, setNotification] = useState(null);
+
+            // Games State
+            const [activeGame, setActiveGame] = useState('ludo');
+            const [gameState, setGameState] = useState({ turn: 'red', redPos: 0, yellowPos: 26, diceValue: 6, isRolling: false, message: "Tap Dice to Roll!" });
+            const [tictacState, setTictacState] = useState({ turn: 'red', board: Array(9).fill(null), winner: null });
+            
+            // Spin & Scratch
+            const [spinAngle, setSpinAngle] = useState(0);
+            const [isSpinning, setIsSpinning] = useState(false);
+            const [scratched, setScratched] = useState(false);
+            const [scratchAmt, setScratchAmt] = useState(0);
+
+            const showToast = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 2500); };
+
+            const rollDice = () => {
+                if(gameState.isRolling) return;
+                setGameState(prev => ({ ...prev, isRolling: true }));
+                let count = 0;
+                const intv = setInterval(() => {
+                    setGameState(prev => ({ ...prev, diceValue: Math.floor(Math.random() * 6) + 1 }));
+                    count++;
+                    if(count > 6) {
+                        clearInterval(intv);
+                        const finalRoll = Math.floor(Math.random() * 6) + 1;
+                        let nextPos = (gameState.redPos + finalRoll) % 52;
+                        setGameState({ turn: 'red', redPos: nextPos, yellowPos: (gameState.yellowPos + 3) % 52, diceValue: finalRoll, isRolling: false, message: `Moved ${finalRoll} steps!` });
+                        setCoins(c => c + finalRoll * 2);
+                        showToast(`Rolled ${finalRoll}! +${finalRoll * 2} Coins`);
+                    }
+                }, 100);
+            };
+
+            const handleTicTac = (idx) => {
+                if(tictacState.board[idx] || tictacState.winner) return;
+                let nb = [...tictacState.board];
+                nb[idx] = 'X';
+                // Simple AI reply
+                let empty = nb.map((v, i) => v === null ? i : null).filter(v => v !== null);
+                if(empty.length > 0) {
+                    let aiPick = empty[Math.floor(Math.random() * empty.length)];
+                    nb[aiPick] = 'O';
+                }
+                setTictacState({ turn: 'red', board: nb, winner: null });
+                setCoins(c => c + 5);
+                showToast("Move played! +5 Coins");
+            };
+
+            const handleSpin = () => {
+                if(isSpinning || coins < 10) return showToast("Need at least 10 Coins to Spin!");
+                setCoins(c => c - 10);
+                setIsSpinning(true);
+                const newAngle = spinAngle + 1440 + Math.floor(Math.random() * 360);
+                setSpinAngle(newAngle);
+                setTimeout(() => {
+                    setIsSpinning(false);
+                    const reward = Math.floor(Math.random() * 40) + 10;
+                    setCoins(c => c + reward);
+                    showToast(`Congratulations! You won ${reward} Coins!`);
+                }, 3000);
+            };
+
+            const handleScratch = () => {
+                if(scratched) return;
+                const win = Math.floor(Math.random() * 20) + 5;
+                setScratchAmt(win);
+                setScratched(true);
+                setCoins(c => c + win);
+                showToast(`Scratch Bonus: +${win} Coins!`);
+            };
+
+            return (
+                <div className="flex flex-col h-screen bg-gray-50 max-w-md mx-auto relative overflow-hidden text-gray-800">
+                    
+                    {notification && (
+                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-2.5 rounded-full shadow-2xl text-xs font-bold animate-bounce">
+                            {notification}
+                        </div>
+                    )}
+
+                    {/* Top Bar */}
+                    <div className="px-4 py-3 flex justify-between items-center bg-white shadow-sm z-10">
+                        <h1 className="text-xl font-black text-indigo-600">{{APP_NAME}}</h1>
+                        <div className="flex gap-2">
+                            <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-200">⭐ {coins}</div>
+                            <div className="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full text-xs font-bold border border-cyan-200">{{CURRENCY_SYMBOL}} {inrBalance.toFixed(1)}</div>
+                        </div>
+                    </div>
+
+                    {/* Content Screen */}
+                    <div className="flex-1 overflow-y-auto pb-20 p-4">
+                        {currentScreen === 'main' && (
+                            <div className="space-y-4">
+                                <!-- Banner -->
+                                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+                                    <h2 className="text-2xl font-black mb-1">Play & Win Real Coins</h2>
+                                    <p className="text-xs text-indigo-100 mb-4">{{APP_TAGLINE}}</p>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setCurrentScreen('ludo')} className="bg-white text-indigo-700 text-xs font-black px-4 py-2 rounded-xl shadow-md active:scale-95">Play Ludo 1v1</button>
+                                        <button onClick={() => setCurrentScreen('spin')} className="bg-yellow-400 text-gray-900 text-xs font-black px-4 py-2 rounded-xl shadow-md active:scale-95">Spin Wheel</button>
+                                    </div>
+                                </div>
+
+                                <!-- Game Cards -->
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div onClick={() => setCurrentScreen('ludo')} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition">
+                                        <div className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-xl font-bold mb-2">🎲</div>
+                                        <h3 className="font-bold text-sm">Ludo Battle</h3>
+                                        <p className="text-[10px] text-gray-400">1 VS 1 Quick Ludo</p>
+                                    </div>
+                                    <div onClick={() => setCurrentScreen('tictactoe')} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition">
+                                        <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl font-bold mb-2">❌</div>
+                                        <h3 className="font-bold text-sm">Tic Tac Toe</h3>
+                                        <p className="text-[10px] text-gray-400">Smart AI Match</p>
+                                    </div>
+                                    <div onClick={() => setCurrentScreen('spin')} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition">
+                                        <div className="w-10 h-10 rounded-lg bg-yellow-100 text-yellow-600 flex items-center justify-center text-xl font-bold mb-2">🎡</div>
+                                        <h3 className="font-bold text-sm">Spin & Win</h3>
+                                        <p className="text-[10px] text-gray-400">Spin for 10 ⭐</p>
+                                    </div>
+                                    <div onClick={() => { setScratched(false); setCurrentScreen('scratch'); }} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm cursor-pointer hover:bg-gray-50 active:scale-95 transition">
+                                        <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xl font-bold mb-2">🎁</div>
+                                        <h3 className="font-bold text-sm">Scratch Card</h3>
+                                        <p className="text-[10px] text-gray-400">Win up to 20 ⭐</p>
+                                    </div>
+                                </div>
+
+                                <!-- Watch & Earn -->
+                                <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-xl font-bold">📺</div>
+                                        <div>
+                                            <h4 className="font-bold text-sm">Watch Video Ad</h4>
+                                            <p className="text-xs text-amber-500 font-bold">+{{AD_REWARD}} Coins</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => { setCoins(c => c + defaultSettings.adReward); showToast(`+${defaultSettings.adReward} Coins Added!`); }} className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg active:scale-95">Watch</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* LUDO SCREEN */}
+                        {currentScreen === 'ludo' && (
+                            <div className="flex flex-col items-center">
+                                <div className="flex justify-between items-center w-full mb-3">
+                                    <button onClick={() => setCurrentScreen('main')} className="text-xs text-indigo-600 font-bold">← Back</button>
+                                    <span className="font-black text-sm text-gray-700">Ludo 1v1 Battle</span>
+                                </div>
+                                <div className="text-xs text-center text-gray-500 mb-2 font-bold">{gameState.message}</div>
+                                
+                                {/* Board */}
+                                <div className="w-full aspect-square bg-gray-900 rounded-2xl p-2 relative shadow-xl">
+                                    <div className="w-full h-full grid gap-[1px] bg-gray-800 rounded-xl overflow-hidden" style={{ gridTemplateColumns: 'repeat(15, 1fr)', gridTemplateRows: 'repeat(15, 1fr)' }}>
+                                        <div style={{gridArea: '1 / 1 / 7 / 7'}} className="bg-green-600 flex items-center justify-center"><div className="w-2/3 h-2/3 bg-white rounded-xl"></div></div>
+                                        <div style={{gridArea: '1 / 10 / 7 / 16'}} className="bg-yellow-500 flex items-center justify-center"><div className="w-2/3 h-2/3 bg-white rounded-xl"></div></div>
+                                        <div style={{gridArea: '10 / 1 / 16 / 7'}} className="bg-red-500 flex items-center justify-center"><div className="w-2/3 h-2/3 bg-white rounded-xl"></div></div>
+                                        <div style={{gridArea: '10 / 10 / 16 / 16'}} className="bg-blue-600 flex items-center justify-center"><div className="w-2/3 h-2/3 bg-white rounded-xl"></div></div>
+                                        <div style={{gridArea: '7 / 7 / 10 / 10'}} className="bg-gray-700 flex items-center justify-center text-yellow-400 font-bold text-xs">HOME</div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex flex-col items-center">
+                                    <button onClick={rollDice} disabled={gameState.isRolling} className="w-20 h-20 rounded-2xl bg-gradient-to-b from-red-500 to-red-600 text-white font-black text-3xl shadow-xl active:scale-95 flex items-center justify-center border-b-4 border-red-700">
+                                        {gameState.isRolling ? <i className="fas fa-spinner fa-spin"></i> : gameState.diceValue}
+                                    </button>
+                                    <span className="text-xs text-gray-500 mt-2 font-bold">Tap to Roll</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TIC TAC TOE */}
+                        {currentScreen === 'tictactoe' && (
+                            <div className="flex flex-col items-center">
+                                <div className="flex justify-between items-center w-full mb-4">
+                                    <button onClick={() => setCurrentScreen('main')} className="text-xs text-indigo-600 font-bold">← Back</button>
+                                    <span className="font-black text-sm text-gray-700">Tic Tac Toe</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3 bg-gray-800 p-3 rounded-2xl shadow-lg">
+                                    {tictacState.board.map((cell, idx) => (
+                                        <button key={idx} onClick={() => handleTicTac(idx)} className="w-20 h-20 bg-gray-700 rounded-xl text-4xl font-black text-white flex items-center justify-center hover:bg-gray-600 transition">
+                                            {cell === 'X' ? <span className="text-green-400">X</span> : cell === 'O' ? <span className="text-red-400">O</span> : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SPIN SCREEN */}
+                        {currentScreen === 'spin' && (
+                            <div className="flex flex-col items-center text-center">
+                                <div className="flex justify-between items-center w-full mb-4">
+                                    <button onClick={() => setCurrentScreen('main')} className="text-xs text-indigo-600 font-bold">← Back</button>
+                                    <span className="font-black text-sm text-gray-700">Spin Wheel</span>
+                                </div>
+                                <div className="relative w-64 h-64 mx-auto my-4">
+                                    <div className="w-full h-full rounded-full border-4 border-indigo-600 overflow-hidden relative shadow-xl" style={{ transition: 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)', transform: `rotate(${spinAngle}deg)`, background: 'conic-gradient(#4F46E5 0 60deg, #10B981 60deg 120deg, #F59E0B 120deg 180deg, #EF4444 180deg 240deg, #8B5CF6 240deg 300deg, #3B82F6 300deg 360deg)' }}></div>
+                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center font-bold text-xs text-gray-800">⭐</div>
+                                </div>
+                                <button onClick={handleSpin} disabled={isSpinning} className="bg-yellow-400 text-gray-900 font-black px-8 py-3 rounded-full shadow-lg active:scale-95 text-sm mt-4">
+                                    {isSpinning ? 'Spinning...' : 'Spin (10 ⭐)'}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* SCRATCH SCREEN */}
+                        {currentScreen === 'scratch' && (
+                            <div className="flex flex-col items-center text-center">
+                                <div className="flex justify-between items-center w-full mb-4">
+                                    <button onClick={() => setCurrentScreen('main')} className="text-xs text-indigo-600 font-bold">← Back</button>
+                                    <span className="font-black text-sm text-gray-700">Scratch Card</span>
+                                </div>
+                                <div onClick={handleScratch} className="w-60 h-60 bg-gradient-to-br from-orange-400 to-amber-500 rounded-3xl shadow-xl flex flex-col items-center justify-center cursor-pointer active:scale-95 transition border-4 border-white text-white p-4">
+                                    {scratched ? (
+                                        <div>
+                                            <div className="text-4xl font-black mb-1">+{scratchAmt} ⭐</div>
+                                            <p className="text-xs font-bold text-amber-100">Claimed to Wallet!</p>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div className="text-4xl mb-2">🎁</div>
+                                            <p className="font-black text-sm uppercase">Tap to Scratch</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <!-- Bottom Nav -->
+                    <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around py-2 z-20">
+                        <button onClick={() => setCurrentScreen('main')} className="flex flex-col items-center text-indigo-600 text-[10px] font-bold">
+                            <i className="fas fa-gamepad text-lg mb-0.5"></i> Games
+                        </button>
+                        <button onClick={() => setCurrentScreen('spin')} className="flex flex-col items-center text-gray-400 text-[10px] font-bold">
+                            <i className="fas fa-coins text-lg mb-0.5"></i> Spin
+                        </button>
+                        <button onClick={() => { setCoins(c => c + 10); showToast("Daily Bonus Claimed! +10 Coins"); }} className="flex flex-col items-center text-gray-400 text-[10px] font-bold">
+                            <i className="fas fa-gift text-lg mb-0.5"></i> Daily
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<RealCashApp />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{APP_NAME}} - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+
+    <style>
+        body { 
+            background-color: #0f172a; 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px;
+        }
+        .card { background: #1e293b; padding: 20px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 16px; }
+        .input-dark { 
+            background: #0f172a; 
+            border: 1px solid #334155; 
+            color: white; 
+            padding: 12px; 
+            border-radius: 10px; 
+            width: 100%; 
+            outline: none; 
+            transition: border-color 0.2s;
+            font-size: 14px;
+        }
+        .input-dark:focus { border-color: #3b82f6; }
+        .btn-primary { 
+            background: #2563eb; 
+            color: white; 
+            padding: 12px; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-danger { background: #ef4444; color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; }
+        .btn-success { background: #22c55e; color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #334155;
+            display: flex; justify-content: space-around;
+            padding: 10px 0; z-index: 50;
+        }
+        .nav-btn {
+            display: flex; flex-direction: column; align-items: center;
+            color: #94a3b8; font-size: 10px; font-weight: 600;
+            transition: all 0.2s; background: none; border: none;
+        }
+        .nav-btn i { font-size: 20px; margin-bottom: 4px; }
+        .nav-btn.active { color: #3b82f6; }
+
+        #toast-container { position: fixed; top: 20px; left: 0; right: 0; z-index: 1000; display: flex; justify-content: center; pointer-events: none; }
+        .toast {
+            padding: 10px 20px; border-radius: 50px; color: white; font-weight: 600; font-size: 13px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px;
+        }
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+        
+        .tab-view { display: none; animation: fadeIn 0.2s; }
+        .tab-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="toast-container"></div>
+
+    <!-- MAIN DASHBOARD CONTAINER -->
+    <div id="dashboard" class="max-w-md mx-auto">
+        
+        <header class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-xl font-bold text-white">{{APP_NAME}} Admin</h1>
+                <p class="text-xs text-slate-400">{{ADMIN_EMAIL}}</p>
+            </div>
+            <button onclick="alert('Session Active')" class="bg-slate-800 p-2 rounded-lg text-emerald-400 border border-slate-700"><i class="fas fa-shield-alt"></i></button>
+        </header>
+
+        <!-- TAB 1: HOME (Stats) -->
+        <div id="view-home" class="tab-view active">
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="card flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-800 to-slate-900 !mb-0">
+                    <i class="fas fa-users text-blue-400 text-2xl mb-2"></i>
+                    <h2 class="text-2xl font-bold text-white" id="live-users">24</h2>
+                    <p class="text-[10px] text-slate-400 uppercase font-bold">Active Today</p>
+                </div>
+                <div class="card flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-800 to-slate-900 !mb-0">
+                    <i class="fas fa-clock text-green-400 text-2xl mb-2"></i>
+                    <h2 class="text-2xl font-bold text-white" id="pending-count">0</h2>
+                    <p class="text-[10px] text-slate-400 uppercase font-bold">Pending Payouts</p>
+                </div>
+            </div>
+            
+            <div class="card border-l-4 border-blue-500">
+                <h3 class="font-bold text-sm mb-2 text-white">Live Controls</h3>
+                <p class="text-xs text-slate-400 mb-3">Manage rewards, payment options, and payouts directly synced with Firebase.</p>
+            </div>
+        </div>
+
+        <!-- TAB 2: REQUESTS (Withdrawals) -->
+        <div id="view-requests" class="tab-view">
+            <h3 class="text-lg font-bold mb-4 text-white">Withdrawal Requests</h3>
+            <div id="withdrawals-list" class="space-y-3 pb-4">
+                <p class="text-center text-slate-500 text-sm py-10">No pending requests</p>
+            </div>
+        </div>
+
+        <!-- TAB 3: SETTINGS (Rewards) -->
+        <div id="view-settings" class="tab-view">
+            <h3 class="text-lg font-bold mb-4 text-white">Reward & Game Settings</h3>
+            <div class="space-y-3">
+                <div class="card !p-4">
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Refer Bonus (Coins)</label>
+                    <input type="number" id="set-refer" value="{{REFERRAL_BONUS}}" class="input-dark">
+                </div>
+                <div class="card !p-4">
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Signup Bonus (Coins)</label>
+                    <input type="number" id="set-signup" value="{{SIGNUP_BONUS}}" class="input-dark">
+                </div>
+                
+                <!-- Game Rewards Section -->
+                <div class="card !p-4 border-l-4 border-indigo-500">
+                    <h4 class="text-sm font-bold text-indigo-400 mb-3">Games Rewards (Coins)</h4>
+                    
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Image Finder Reward</label>
+                    <input type="number" id="set-image-reward" value="{{AD_REWARD}}" class="input-dark mb-3">
+
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Tic Tac Toe Reward</label>
+                    <input type="number" id="set-ttt-reward" value="15" class="input-dark mb-3">
+
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Math Solve Reward</label>
+                    <input type="number" id="set-math-reward" value="10" class="input-dark">
+                </div>
+
+                <div class="card !p-4">
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Min Withdraw (Coins)</label>
+                    <input type="number" id="set-min-withdraw" value="{{MIN_WITHDRAWAL}}" class="input-dark">
+                </div>
+                <div class="card !p-4">
+                    <label class="text-xs text-slate-400 font-bold block mb-1">Coin Conversion Rate Text</label>
+                    <input type="text" id="set-coin-val" value="{{COIN_RATE_COINS}} Coins = {{CURRENCY_SYMBOL}}{{COIN_RATE_CURRENCY}}" class="input-dark">
+                </div>
+                <button onclick="saveGlobalSettings()" id="save-settings-btn" class="btn-primary mt-4">Save Changes</button>
+            </div>
+        </div>
+
+        <!-- TAB 4: MORE (Config) -->
+        <div id="view-more" class="tab-view">
+            <h3 class="text-lg font-bold mb-4 text-white">Social & Payment Methods</h3>
+            <div class="card">
+                <h4 class="font-bold text-sm text-green-400 mb-3">Payment Methods</h4>
+                <div class="flex flex-wrap gap-2" id="payment-methods-list">
+                    <div class="bg-slate-700 px-3 py-1 rounded text-xs">UPI</div>
+                    <div class="bg-slate-700 px-3 py-1 rounded text-xs">Paytm</div>
+                    <div class="bg-slate-700 px-3 py-1 rounded text-xs">PayPal</div>
+                    <div class="bg-slate-700 px-3 py-1 rounded text-xs">Crypto (USDT)</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 class="font-bold text-sm text-blue-400 mb-3">Telegram Links</h4>
+                <input type="text" id="link-telegram" class="input-dark text-xs mb-2" placeholder="Telegram Channel / Bot URL">
+                <button onclick="showToast('Links Updated!', 'success')" class="btn-primary text-xs py-2">Update Links</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <button onclick="switchTab('view-home', this)" class="nav-btn active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </button>
+        <button onclick="switchTab('view-requests', this)" class="nav-btn">
+            <i class="fas fa-list"></i>
+            <span>Requests</span>
+        </button>
+        <button onclick="switchTab('view-settings', this)" class="nav-btn">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </button>
+        <button onclick="switchTab('view-more', this)" class="nav-btn">
+            <i class="fas fa-bars"></i>
+            <span>More</span>
+        </button>
+    </nav>
+
+    <script>
+        function switchTab(viewId, btnElement) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function saveGlobalSettings() {
+            showToast("Settings Saved Successfully!", "success");
+        }
+
+        function showToast(msg, type) {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type === 'success' ? 'toast-success' : 'toast-error'}`;
+            t.innerHTML = `<span>${msg}</span>`;
+            c.appendChild(t);
+            setTimeout(() => { t.remove(); }, 2500);
+        }
+    </script>
+</body>
+</html>

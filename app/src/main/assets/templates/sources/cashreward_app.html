@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{APP_NAME}} - CashReward</title>
+    
+    <!-- Ad Code -->
+    <script src='{{AD_SDK_URL}}' data-zone='{{AD_ZONE_ID}}' data-sdk='show_{{AD_ZONE_ID}}'></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #1a1a1a; color: #ffffff; }
+        .main-bg { background-color: #1a1a1a; }
+        .card-bg { background-color: #2c2c2c; }
+        .input-field { background-color: #3f3f46; border: 1px solid #52525b; }
+        .accent-yellow { color: #facc15; }
+        .accent-yellow-bg { background-color: #facc15; }
+        .btn-accent { background-color: #facc15; color: #1a1a1a; font-weight: bold; border-radius: 9999px; transition: all 0.2s; }
+        .btn-accent:hover { background-color: #eab308; }
+        .feature-btn { background-color: #facc15; border-radius: 1.5rem; padding: 1.5rem; color: #1a1a1a; font-weight: 700; text-align: center; box-shadow: 0 5px 0 #ca8a04; transition: all 0.1s; cursor: pointer; }
+        .feature-btn:active { box-shadow: 0 2px 0 #ca8a04; transform: translateY(3px); }
+        .sub-page { display: none; }
+        .sub-page.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="max-w-md mx-auto">
+
+    <!-- Header -->
+    <header class="p-4 flex items-center justify-between border-b border-gray-800">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-yellow-400 text-black font-bold flex items-center justify-center text-lg">{{APP_NAME_INITIAL}}</div>
+            <div>
+                <h2 class="font-semibold text-lg leading-tight">{{APP_NAME}}</h2>
+                <p class="text-gray-400 text-xs">{{APP_TAGLINE}}</p>
+            </div>
+        </div>
+        <div class="accent-yellow-bg text-black px-4 py-2 rounded-full font-bold flex items-center space-x-2">
+            <span id="header-coin-balance">{{SIGNUP_BONUS}}</span>
+            <i data-lucide="coins" class="w-5 h-5"></i>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="p-4 pb-24">
+        <div id="home-page" class="space-y-6 sub-page active">
+            <div class="grid grid-cols-2 gap-5">
+                <div onclick="navigateTo('color-game-page')" class="feature-btn">
+                    <i data-lucide="palette" class="w-12 h-12 mx-auto mb-2"></i>
+                    <span class="text-lg">Color Game</span>
+                </div>
+                <div onclick="claimReward()" class="feature-btn">
+                    <i data-lucide="play-circle" class="w-12 h-12 mx-auto mb-2"></i>
+                    <span class="text-lg">Watch & Earn</span>
+                </div>
+                <div onclick="navigateTo('visit-earn-page')" class="feature-btn">
+                    <i data-lucide="globe" class="w-12 h-12 mx-auto mb-2"></i>
+                    <span class="text-lg">Visit & Earn</span>
+                </div>
+                <div onclick="navigateTo('social-tasks-page')" class="feature-btn">
+                    <i data-lucide="thumbs-up" class="w-12 h-12 mx-auto mb-2"></i>
+                    <span class="text-lg">Social Tasks</span>
+                </div>
+            </div>
+
+            <!-- Referral Card -->
+            <div class="card-bg p-5 rounded-2xl text-center">
+                <p class="text-sm text-gray-400 mb-1">Refer a Friend & Earn</p>
+                <h3 class="text-2xl font-bold accent-yellow">+{{REFERRAL_BONUS}} Coins</h3>
+                <div class="bg-gray-800 p-3 rounded-xl mt-3 flex justify-between items-center">
+                    <span class="font-mono font-bold tracking-widest text-lg" id="ref-code">CASH892</span>
+                    <button onclick="navigator.clipboard.writeText('CASH892'); alert('Code copied!')" class="text-xs bg-yellow-400 text-black px-3 py-1.5 rounded-lg font-bold">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Game Page -->
+        <div id="color-game-page" class="space-y-4 text-center sub-page">
+            <div class="flex justify-between items-center mb-2">
+                <button onclick="navigateTo('home-page')" class="text-xs accent-yellow font-bold">← Back to Home</button>
+                <h2 class="text-xl font-bold">Guess the Color!</h2>
+            </div>
+            <p class="text-gray-400 text-xs">Pick the box with the matching color RGB.</p>
+            <div class="card-bg p-4 rounded-xl">
+                <p class="text-xs text-gray-400">Target Color:</p>
+                <div id="target-color-box" class="w-24 h-12 mx-auto rounded-lg my-2 border-2 border-white"></div>
+                <p id="target-color-rgb" class="font-mono text-sm"></p>
+            </div>
+            <div id="color-options-grid" class="grid grid-cols-3 gap-3 max-w-sm mx-auto"></div>
+        </div>
+
+        <!-- Visit & Earn Page -->
+        <div id="visit-earn-page" class="space-y-4 sub-page">
+            <div class="flex justify-between items-center mb-2">
+                <button onclick="navigateTo('home-page')" class="text-xs accent-yellow font-bold">← Back</button>
+                <h2 class="text-xl font-bold">Visit Websites</h2>
+            </div>
+            <div class="space-y-3">
+                <div class="card-bg p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold text-sm">Crypto News Daily</h3>
+                        <p class="text-xs accent-yellow">Get 15 Coins • 15s visit</p>
+                    </div>
+                    <button onclick="simulateVisit(15)" class="btn-accent px-4 py-1.5 text-xs">Visit</button>
+                </div>
+                <div class="card-bg p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold text-sm">Tech Radar Blog</h3>
+                        <p class="text-xs accent-yellow">Get 20 Coins • 20s visit</p>
+                    </div>
+                    <button onclick="simulateVisit(20)" class="btn-accent px-4 py-1.5 text-xs">Visit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Tasks Page -->
+        <div id="social-tasks-page" class="space-y-4 sub-page">
+            <div class="flex justify-between items-center mb-2">
+                <button onclick="navigateTo('home-page')" class="text-xs accent-yellow font-bold">← Back</button>
+                <h2 class="text-xl font-bold">Social Tasks</h2>
+            </div>
+            <div class="space-y-3">
+                <div class="card-bg p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold text-sm">Join Telegram Channel</h3>
+                        <p class="text-xs accent-yellow">+50 Coins</p>
+                    </div>
+                    <button onclick="addCoins(50); alert('Task completed! +50 Coins');" class="btn-accent px-4 py-1.5 text-xs">Join</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Page -->
+        <div id="wallet-page" class="space-y-4 sub-page">
+            <div class="card-bg p-5 rounded-2xl text-center">
+                <p class="text-xs text-gray-400">Total Coins Balance</p>
+                <h2 class="text-3xl font-extrabold accent-yellow my-2" id="wallet-balance">{{SIGNUP_BONUS}}</h2>
+                <p class="text-xs text-gray-400">{{COIN_RATE_COINS}} Coins = {{CURRENCY_SYMBOL}}{{COIN_RATE_CURRENCY}}</p>
+            </div>
+
+            <div class="card-bg p-5 rounded-2xl space-y-3">
+                <h3 class="font-bold text-sm">Redeem Rewards</h3>
+                <input type="text" placeholder="UPI ID / Phone / Email" class="w-full p-3 rounded-xl input-field text-sm outline-none">
+                <input type="number" placeholder="Coins (Min {{MIN_WITHDRAWAL}})" class="w-full p-3 rounded-xl input-field text-sm outline-none">
+                <button onclick="alert('Withdrawal Request Submitted!')" class="w-full p-3 btn-accent text-sm">Submit Withdrawal</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 max-w-md w-full bg-gray-900 border-t border-gray-800 grid grid-cols-3 py-3 text-center text-xs font-bold text-gray-400">
+        <button onclick="navigateTo('home-page')" class="flex flex-col items-center accent-yellow"><i data-lucide="home" class="w-5 h-5 mb-1"></i> Home</button>
+        <button onclick="navigateTo('color-game-page')" class="flex flex-col items-center"><i data-lucide="gamepad-2" class="w-5 h-5 mb-1"></i> Games</button>
+        <button onclick="navigateTo('wallet-page')" class="flex flex-col items-center"><i data-lucide="wallet" class="w-5 h-5 mb-1"></i> Wallet</button>
+    </nav>
+
+    <script>
+        let balance = {{SIGNUP_BONUS}};
+
+        window.onload = () => {
+            lucide.createIcons();
+            startGame();
+        };
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+            const p = document.getElementById(pageId);
+            if(p) p.classList.add('active');
+            if(pageId === 'color-game-page') startGame();
+        }
+
+        function addCoins(amt) {
+            balance += amt;
+            document.getElementById('header-coin-balance').innerText = balance;
+            document.getElementById('wallet-balance').innerText = balance;
+        }
+
+        function claimReward() {
+            addCoins({{AD_REWARD}});
+            alert("Congratulations! Watched Ad and earned +{{AD_REWARD}} Coins!");
+        }
+
+        function simulateVisit(coins) {
+            alert(`Opening site... Wait 5 seconds!`);
+            setTimeout(() => {
+                addCoins(coins);
+                alert(`+${coins} Coins earned for visiting!`);
+            }, 3000);
+        }
+
+        function startGame() {
+            const r = Math.floor(Math.random() * 256), g = Math.floor(Math.random() * 256), b = Math.floor(Math.random() * 256);
+            document.getElementById('target-color-box').style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            document.getElementById('target-color-rgb').textContent = `RGB(${r}, ${g}, ${b})`;
+            const grid = document.getElementById('color-options-grid');
+            grid.innerHTML = '';
+            const opts = [`rgb(${r}, ${g}, ${b})`];
+            for (let i = 0; i < 5; i++) {
+                opts.push(`rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`);
+            }
+            opts.sort(() => Math.random() - 0.5);
+            opts.forEach(c => {
+                const box = document.createElement('div');
+                box.className = 'w-full h-16 rounded-xl cursor-pointer transition transform active:scale-95';
+                box.style.backgroundColor = c;
+                box.onclick = () => {
+                    if(c === `rgb(${r}, ${g}, ${b})`) {
+                        addCoins(10);
+                        alert("Correct Guess! +10 Coins!");
+                        startGame();
+                    } else {
+                        alert("Wrong color, try again!");
+                    }
+                };
+                grid.appendChild(box);
+            });
+        }
+    </script>
+</body>
+</html>

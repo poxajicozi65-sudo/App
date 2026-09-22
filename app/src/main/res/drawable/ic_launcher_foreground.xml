@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Anvil base / forge platform (centered inside safe zone 21..87) -->
+    <path
+        android:pathData="M33,68 L75,68 C76,68 77,69 77,70 L77,74 C77,75 76,76 75,76 L33,76 C32,76 31,75 31,74 L31,70 C31,69 32,68 33,68 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="77"
+                android:endY="76"
+                android:startX="31"
+                android:startY="68"
+                android:type="linear">
+                <item android:color="#F59E0B" android:offset="0.0" />
+                <item android:color="#D97706" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M40,58 L68,58 L72,68 L36,68 Z"
+        android:fillColor="#FBBF24" />
+
+    <!-- Telegram paper plane / rocket taking off from forge -->
+    <path
+        android:pathData="M76,32 L32,50 L48,56 L68,42 L52,60 L50,68 L58,61 L68,68 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="76"
+                android:endY="68"
+                android:startX="32"
+                android:startY="32"
+                android:type="linear">
+                <item android:color="#38BDF8" android:offset="0.0" />
+                <item android:color="#0284C7" android:offset="0.7" />
+                <item android:color="#0369A1" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Glowing forge spark stars -->
+    <path
+        android:pathData="M36,36 L38,30 L40,36 L46,38 L40,40 L38,46 L36,40 L30,38 Z"
+        android:fillColor="#FDE047" />
+    <path
+        android:pathData="M70,26 L71,22 L72,26 L76,27 L72,28 L71,32 L70,28 L66,27 Z"
+        android:fillColor="#38BDF8" />
+    <path
+        android:pathData="M32,60 L33,57 L34,60 L37,61 L34,62 L33,65 L32,62 L29,61 Z"
+        android:fillColor="#FBBF24" />
+</vector>
